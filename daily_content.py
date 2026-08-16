@@ -253,6 +253,9 @@ FORMAT OUTPUT (WAJIB IKUTI PERSIS):
 🎵 REKOMENDASI LAGU:
 [Judul lagu — Artis] (alasan singkat kenapa cocok)
 
+🎨 PROMPT GAMBAR AI (Slide 1 Hook):
+[Tulis 1 prompt detail dalam BAHASA INGGRIS untuk AI Flux membuat foto visual mockup Slide 1 yang estetik, contoh: "Aesthetic pastel pink FOMI foaming hand soap pump bottle with cute DIY smiley face sticker, placed on a modern clean bathroom sink with soft morning sunlight, Indonesian Gen Z aesthetic, 9:16 vertical TikTok style, cinematic product photography, 8k resolution"]
+
 📸 STORYBOARD (6-7 SLIDE):
 
 Slide 1 (Hook):
@@ -340,12 +343,64 @@ ATURAN PENTING:
 
 
 # ============================================================
-# BAGIAN 4: KIRIM KE TELEGRAM
+# BAGIAN 4: GENERATE GAMBAR AI & KIRIM KE TELEGRAM
 # ============================================================
 
+def generate_ai_image(image_prompt):
+    """
+    Menghasilkan gambar AI realistis format 9:16 (TikTok Portrait)
+    menggunakan model Flux via Pollinations.ai (Gratis, HD, Tanpa Watermark).
+    """
+    print("[3.5/4] Generating mockup gambar AI (Flux 9:16)...")
+    try:
+        clean_prompt = image_prompt.strip().replace("\n", " ")
+        encoded_prompt = requests.utils.quote(clean_prompt)
+        img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=720&height=1280&nologo=true&model=flux"
+        
+        resp = requests.get(img_url, timeout=60)
+        if resp.status_code == 200 and len(resp.content) > 5000:
+            print(f"  ✅ Gambar AI berhasil dibuat ({len(resp.content):,} bytes)!")
+            return resp.content
+        else:
+            print(f"  ⚠️ Gagal fetch gambar: status {resp.status_code}")
+            return None
+    except Exception as e:
+        print(f"  ⚠️ Error generate gambar AI: {e}")
+        return None
+
+
+def send_photo_to_telegram(photo_bytes, caption):
+    """Mengirim foto AI ke Telegram."""
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        return False
+    
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
+    try:
+        files = {"photo": ("fomi_slide1.jpg", photo_bytes, "image/jpeg")}
+        data = {
+            "chat_id": TELEGRAM_CHAT_ID,
+            "caption": caption[:1024],
+            "parse_mode": "Markdown",
+        }
+        resp = requests.post(url, data=data, files=files, timeout=30)
+        if resp.status_code != 200:
+            data["parse_mode"] = ""
+            resp = requests.post(url, data=data, files=files, timeout=30)
+        
+        if resp.status_code == 200:
+            print("  ✅ Foto visual mockup AI terkirim ke Telegram!")
+            return True
+        else:
+            print(f"  ⚠️ Gagal kirim foto: {resp.text[:200]}")
+            return False
+    except Exception as e:
+        print(f"  ⚠️ Error kirim foto ke Telegram: {e}")
+        return False
+
+
 def send_to_telegram(message):
-    """Mengirim pesan ke Telegram bot."""
-    print("[4/4] Mengirim hasil ke Telegram...")
+    """Mengirim pesan teks ke Telegram bot."""
+    print("[4/4] Mengirim konsep konten ke Telegram...")
 
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         print("  ⚠️ Telegram token/chat ID belum diset. Print ke console saja.")
@@ -357,12 +412,10 @@ def send_to_telegram(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
 
     # Telegram punya limit 4096 karakter per pesan
-    # Jadi kita pecah jika terlalu panjang
     chunks = []
     if len(message) <= 4000:
         chunks = [message]
     else:
-        # Pecah per bagian
         lines = message.split("\n")
         current_chunk = ""
         for line in lines:
@@ -386,18 +439,17 @@ def send_to_telegram(message):
             resp = requests.post(url, json=payload, timeout=15)
 
             if resp.status_code != 200:
-                # Coba lagi tanpa Markdown (kadang formatting conflict)
                 payload["parse_mode"] = ""
                 resp = requests.post(url, json=payload, timeout=15)
 
             if resp.status_code == 200:
-                print(f"  ✅ Pesan bagian {i+1}/{len(chunks)} terkirim!")
+                print(f"  ✅ Pesan teks bagian {i+1}/{len(chunks)} terkirim!")
             else:
-                print(f"  ⚠️ Gagal kirim bagian {i+1}: {resp.text[:200]}")
+                print(f"  ⚠️ Gagal kirim teks bagian {i+1}: {resp.text[:200]}")
                 success = False
 
             if i < len(chunks) - 1:
-                time.sleep(1)  # Hindari rate limit
+                time.sleep(1)
 
         except Exception as e:
             print(f"  ⚠️ Error kirim Telegram: {e}")
@@ -480,14 +532,42 @@ def main():
         print("❌ Gagal generate konten. Cek Gemini API key.")
         sys.exit(1)
 
-    # Step 4: Kirim ke Telegram
-    header = f"🫧 *FOMI DAILY CONTENT*\n📅 {tanggal}\n{'─'*30}\n\n"
+    # Step 4: Generate Gambar Mockup AI & Kirim ke Telegram
+    # Cari prompt gambar di dalam output Gemini
+    image_prompt = ""
+    if "PROMPT GAMBAR AI" in content:
+        try:
+            part = content.split("PROMPT GAMBAR AI")[1]
+            if "📸 STORYBOARD" in part:
+                part = part.split("📸 STORYBOARD")[0]
+            # Bersihkan tanda kurung atau titik dua
+            image_prompt = part.replace(":", "").replace("(", "").replace(")", "").strip()
+            # Ambil baris pertama atau teks prompt
+            lines = [l.strip() for l in image_prompt.split("\n") if l.strip() and not l.strip().startswith("[") and not l.strip().endswith("]")]
+            if lines:
+                image_prompt = " ".join(lines)
+        except Exception as e:
+            print(f"  ⚠️ Gagal parse prompt gambar: {e}")
+
+    if not image_prompt:
+        image_prompt = "Aesthetic pastel FOMI foaming hand soap bottle with cute DIY face sticker on modern bathroom sink, soft cinematic lighting, 9:16 vertical TikTok style, high quality product photo"
+
+    print(f"  🎨 Prompt AI Image: {image_prompt[:80]}...")
+    photo_bytes = generate_ai_image(image_prompt)
+
+    # Kirim foto visual dulu ke Telegram (jika berhasil)
+    if photo_bytes:
+        photo_caption = f"🫧 *VISUAL MOCKUP SLIDE 1 (HOOK)*\n📅 {tanggal}\n_Generated by AI (Flux 9:16)_"
+        send_photo_to_telegram(photo_bytes, photo_caption)
+
+    # Step 5: Kirim teks konsep lengkap ke Telegram
+    header = f"🫧 *FOMI DAILY CONTENT STRATEGY*\n📅 {tanggal}\n{'─'*30}\n\n"
     full_message = header + content
 
     send_to_telegram(full_message)
 
     print(f"\n{'='*60}")
-    print("✅ SELESAI! Cek Telegram kamu.")
+    print("✅ SELESAI! Gambar AI dan Konsep Konten terkirim ke Telegram.")
     print(f"{'='*60}\n")
 
 
