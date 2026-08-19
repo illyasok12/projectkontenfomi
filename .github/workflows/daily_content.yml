@@ -2,16 +2,32 @@ name: FOMI Daily Content Engine
 
 on:
   schedule:
-    # Jalan setiap hari jam 00:00 UTC = 07:00 WIB
+    # Job 1: Foto Carousel — 00:00 UTC = 07:00 WIB
     - cron: '0 0 * * *'
+    # Job 2: Video Storytelling — 00:30 UTC = 07:30 WIB
+    - cron: '30 0 * * *'
   
   # Bisa juga dijalankan manual dari GitHub untuk testing
   workflow_dispatch:
+    inputs:
+      pipeline:
+        description: 'Pipeline mana yang dijalankan?'
+        required: true
+        default: 'both'
+        type: choice
+        options:
+          - both
+          - photo-carousel
+          - video-storytelling
 
 jobs:
+  # ─── JOB 1: FOTO CAROUSEL (daily_content.py) ───
   generate-content:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    if: >
+      github.event.schedule == '0 0 * * *' ||
+      github.event_name == 'workflow_dispatch' && (github.event.inputs.pipeline == 'both' || github.event.inputs.pipeline == 'photo-carousel')
 
     steps:
       - name: Checkout repository
@@ -25,10 +41,40 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run FOMI Daily Content Engine
+      - name: Run FOMI Daily Content Engine (Foto Carousel)
         env:
           APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || secrets.GEMINI_APT_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          PYTHONIOENCODING: utf-8
         run: python daily_content.py
+
+  # ─── JOB 2: VIDEO STORYTELLING (video_storytelling.py) ───
+  generate-video-storytelling:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: >
+      github.event.schedule == '30 0 * * *' ||
+      github.event_name == 'workflow_dispatch' && (github.event.inputs.pipeline == 'both' || github.event.inputs.pipeline == 'video-storytelling')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run FOMI Video Storytelling Engine
+        env:
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || secrets.GEMINI_APT_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          PYTHONIOENCODING: utf-8
+        run: python video_storytelling.py
