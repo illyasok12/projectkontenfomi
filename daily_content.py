@@ -9,6 +9,7 @@ import os
 import sys
 import json
 import time
+import base64
 import requests
 from datetime import datetime, timezone, timedelta
 
@@ -348,10 +349,35 @@ ATURAN PENTING:
 
 def generate_ai_image(image_prompt):
     """
-    Menghasilkan gambar AI realistis format 9:16 (TikTok Portrait)
-    menggunakan model Flux via Pollinations.ai (Gratis, HD, Tanpa Watermark).
+    Menghasilkan gambar AI visual mockup format 9:16 (TikTok Portrait).
+    Primary: Google Imagen 3 (Nano Banana Pro) via Gemini API
+    Fallback: Flux.1 via Pollinations.ai (Gratis, HD, Tanpa Watermark)
     """
-    print("[3.5/4] Generating mockup gambar AI (Flux 9:16)...")
+    print("[3.5/4] Generating mockup gambar AI (Nano Banana Pro / Imagen 3)...")
+
+    # 1. Coba Google Imagen 3 (Nano Banana Pro)
+    if GEMINI_API_KEY:
+        imagen_url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key={GEMINI_API_KEY}"
+        payload = {
+            "instances": [{"prompt": image_prompt}],
+            "parameters": {
+                "sampleCount": 1,
+                "aspectRatio": "9:16",
+                "outputMimeType": "image/jpeg",
+            }
+        }
+        try:
+            resp = requests.post(imagen_url, json=payload, timeout=45)
+            if resp.status_code == 200:
+                data = resp.json()
+                b64_img = data["predictions"][0]["bytesBase64Encoded"]
+                img_bytes = base64.b64decode(b64_img)
+                print(f"  ✅ Gambar AI berhasil dibuat dengan Google Imagen 3 (Nano Banana Pro) ({len(img_bytes):,} bytes)!")
+                return img_bytes
+        except Exception as e:
+            print(f"  ⚠️ Imagen 3 error ({e}), fallback ke Flux...")
+
+    # 2. Fallback ke Flux (Pollinations)
     try:
         clean_prompt = image_prompt.strip().replace("\n", " ")
         encoded_prompt = requests.utils.quote(clean_prompt)
@@ -359,10 +385,10 @@ def generate_ai_image(image_prompt):
         
         resp = requests.get(img_url, timeout=60)
         if resp.status_code == 200 and len(resp.content) > 5000:
-            print(f"  ✅ Gambar AI berhasil dibuat ({len(resp.content):,} bytes)!")
+            print(f"  ✅ Gambar AI berhasil dibuat dengan Flux ({len(resp.content):,} bytes)!")
             return resp.content
         else:
-            print(f"  ⚠️ Gagal fetch gambar: status {resp.status_code}")
+            print(f"  ⚠️ Gagal fetch gambar Flux: status {resp.status_code}")
             return None
     except Exception as e:
         print(f"  ⚠️ Error generate gambar AI: {e}")

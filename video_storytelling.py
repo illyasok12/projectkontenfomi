@@ -392,6 +392,13 @@ Tip Rekam: [Catatan teknis]
 💎 VALUE FOMI YANG DISISIPKAN:
 [Sebutkan value FOMI mana yang relevan dengan topik hari ini. Jika TIDAK ADA yang relevan, tulis: "Tidak ada value FOMI yang dipaksakan hari ini — konten fokus pada brand awareness via storytelling."]
 
+🎥 GOOGLE VEO 3.1 - QUALITY (CINEMATIC B-ROLL PROMPT):
+[Buatkan 1 prompt sinematik Bahasa Inggris siap copy-paste ke Google Veo 3.1 - Quality untuk membuat video B-roll produk FOMI yang aesthetic/ultra-realistic 9:16]
+- Camera & Lens: [misal: Macro 50mm, 4K, 60fps slow pan]
+- Lighting & Atmosphere: [misal: Golden hour warm window light, aesthetic cleanroom vibe]
+- Action & Motion: [misal: Rich foaming soap dispensed onto hand with cute sticker bottle in background, fluid dynamic foam physics]
+- Negative Prompt: [low quality, blur, grainy, distorted]
+
 🎵 BACKSOUND RECOMMENDATION (3 Opsi):
 1. [Judul — Artis/Tipe] ⭐ Paling Direkomendasikan
    Mood: [Calm/Tense/Emotional/Upbeat]
