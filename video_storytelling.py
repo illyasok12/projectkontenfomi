@@ -299,9 +299,17 @@ def generate_full_video_brief(storytelling_videos, comments_data, trending_data)
     except:
         fomi_master_info = ""
 
+    try:
+        from fomi_memory import get_formatted_memory_prompt
+        fomi_memory_info = get_formatted_memory_prompt()
+    except:
+        fomi_memory_info = ""
+
     prompt = f"""Kamu adalah senior content strategist dan scriptwriter profesional untuk brand FOMI Indonesia.
 
 {fomi_master_info}
+
+{fomi_memory_info}
 
 ═══════════════════════════════════════════
 KONSEP VIDEO: STORYTELLING DENGAN POLARISASI

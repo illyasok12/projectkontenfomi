@@ -229,9 +229,17 @@ def generate_fomi_content(tiktok_data, ig_data):
     except:
         fomi_master_info = ""
 
+    try:
+        from fomi_memory import get_formatted_memory_prompt
+        fomi_memory_info = get_formatted_memory_prompt()
+    except:
+        fomi_memory_info = ""
+
     prompt = f"""Kamu adalah content strategist profesional untuk brand FOMI Indonesia.
 
 {fomi_master_info}
+
+{fomi_memory_info}
 
 TANGGAL HARI INI: {tanggal}
 

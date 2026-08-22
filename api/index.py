@@ -18,17 +18,25 @@ from http.server import BaseHTTPRequestHandler
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "") or os.environ.get("GEMINI_APT_KEY", "")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 
-# Import knowledge base
+# Import knowledge base & memory bank
 try:
     from fomi_knowledge import get_formatted_knowledge_prompt, FOMI_KNOWLEDGE
     FOMI_MASTER_INFO = get_formatted_knowledge_prompt()
 except:
     FOMI_MASTER_INFO = ""
 
+try:
+    from fomi_memory import get_formatted_memory_prompt, add_feedback_to_memory
+    FOMI_MEMORY_INFO = get_formatted_memory_prompt()
+except:
+    FOMI_MEMORY_INFO = ""
+
 # Brand Identity FOMI
 FOMI_SYSTEM_PROMPT = f"""Kamu adalah Asisten AI Senior Content Strategist & Copywriter resmi untuk brand FOMI Indonesia.
 
 {FOMI_MASTER_INFO}
+
+{FOMI_MEMORY_INFO}
 
 KEMAMPUAN UTAMA KAMU:
 1. Menjawab pertanyaan strategi konten, ide video/foto, hook TikTok, copywriting, caption SEO, dan hashtag.
@@ -40,6 +48,7 @@ KEMAMPUAN UTAMA KAMU:
 
 PENTING / GUARDRAIL:
 - Fitur AR 3D Scan & 3D Open World Game JANGAN dipromosikan dulu (masih tahap penyempurnaan).
+- HINDARI membahas masalah tangan keriput / penuaan secara repetitif. Gunakan variasi sudut pandang: estetik, aroma Royale Nectar, jerami unboxing, kartu PVC game battle, atau keresahan tangan kering/kasar karena sabun murah/ojol/minyak.
 """
 
 
@@ -219,6 +228,10 @@ def handle_user_message(chat_id, user_text, user_name=""):
             f"└ Buatkan prompt video sinematik khusus untuk *Google Veo 3.1 - Quality*.\n\n"
             f"🪝 `/hook [topik]`\n"
             f"└ Minta 5 ide hook polarisasi (negatif ➔ konter) yang bikin stop scroll.\n\n"
+            f"🧠 `/learn [masukan/evaluasi]`\n"
+            f"└ Ajarkan hal baru ke AI (disimpan permanen ke memory bank).\n\n"
+            f"📂 `/memory`\n"
+            f"└ Cek seluruh catatan & aturan yang sudah dipelajari AI.\n\n"
             f"💬 *Atau langsung chat bebas aja!* Misal:\n"
             f"_\"Revisi naskah tadi biar lebih kocak dong\"_\n"
             f"_\"Kira-kira angle stiker DIY cocok gak buat mahasiswi?\"_"
@@ -351,22 +364,57 @@ Format output:
     if text_clean.startswith("/hook"):
         topic = text_clean.replace("/hook", "", 1).strip()
         if not topic:
-            topic = "Sabun cuci tangan dan perawatan kulit tangan Gen Z"
+            topic = "Sabun cuci tangan dan gaya hidup Gen Z"
         
         send_chat_action(chat_id, "typing")
         prompt = f"""Buatkan 5 IDE HOOK POLARISASI (Negatif ➔ Konter Fakta) untuk konten FOMI tentang '{topic}'.
 Karakteristik:
 - Bahasa anak muda Indonesia yang sangat natural, ceplas-ceplos, BUKAN bahasa iklan.
 - Membuka dengan statement kontroversial/negatif yang bikin orang kaget & berhenti scroll dalam 3 detik pertama.
+- HINDARI topik tangan keriput berlebihan. Gunakan variasi: unboxing jerami, aroma Royale Nectar, kartu PVC Shopee, battle chat, atau tangan kotor/kering habis nongkrong.
 - Sertakan penjelasan kenapa hook ini bakal memicu perdebatan/interaksi di kolom komentar.
 """
         res = call_gemini_text(prompt)
         send_telegram_message(chat_id, f"🪝 *5 IDE HOOK POLARISASI FOMI*\n📌 Topik: _{topic}_\n{'─'*30}\n\n" + res)
         return
 
-    # 7. CHAT BEBAS / REVISI / DISKUSI UMUM
+    # 7. COMMAND: /learn [masukan/catatan evaluasi]
+    if text_clean.startswith("/learn") or text_clean.startswith("/ingat"):
+        feedback = text_clean.replace("/learn", "", 1).replace("/ingat", "", 1).strip()
+        if not feedback:
+            send_telegram_message(chat_id, "⚠️ Masukkan catatan yang ingin AI pelajari!\nContoh: `/learn jangan bahas tangan keriput, lebih banyakin angle unboxing jerami dan kartu PVC`")
+            return
+        
+        send_chat_action(chat_id, "typing")
+        # Analisa apakah ini larangan (anti-pattern) atau insight
+        cat = "anti_patterns" if any(w in feedback.lower() for w in ["jangan", "hindari", "stop", "ga usah", "ngga boleh"]) else "learned_insights"
+        
+        try:
+            add_feedback_to_memory(cat, feedback)
+            send_telegram_message(
+                chat_id,
+                f"🧠 *CATATAN BERHASIL DISIMPAN KE MEMORY BANK AI!*\n\n"
+                f"📂 Kategori: `{cat}`\n"
+                f"📝 Catatan: _{feedback}_\n\n"
+                f"✨ Mulai sekarang, AI akan otomatis menerapkan pelajaran ini untuk semua naskah video & konsep foto berikutnya!"
+            )
+        except Exception as e:
+            send_telegram_message(chat_id, f"⚠️ Gagal menyimpan ke memori: {e}")
+        return
+
+    # 8. COMMAND: /memory (cek isi ingatan AI)
+    if text_clean in ("/memory", "/ingatan", "/catatan"):
+        try:
+            from fomi_memory import get_formatted_memory_prompt
+            mem_text = get_formatted_memory_prompt()
+            send_telegram_message(chat_id, f"🧠 *ISI MEMORY BANK AI SAAT INI:*\n\n{mem_text}")
+        except Exception as e:
+            send_telegram_message(chat_id, f"⚠️ Error membaca memori: {e}")
+        return
+
+    # 9. CHAT BEBAS / REVISI / DISKUSI UMUM
     send_chat_action(chat_id, "typing")
-    reply = call_gemini_text(f"User berkata: '{text_clean}'. Balaslah sebagai Content Strategist FOMI yang ramah, kreatif, dan solutif.")
+    reply = call_gemini_text(f"User berkata: '{text_clean}'. Balaslah sebagai Content Strategist FOMI yang ramah, cerdas, dan solutif.")
     send_telegram_message(chat_id, reply)
 
 
