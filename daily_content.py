@@ -223,15 +223,15 @@ def generate_fomi_content(tiktok_data, ig_data):
             f"   Link: {p['url']}\n\n"
         )
 
+    try:
+        from fomi_knowledge import get_formatted_knowledge_prompt
+        fomi_master_info = get_formatted_knowledge_prompt()
+    except:
+        fomi_master_info = ""
+
     prompt = f"""Kamu adalah content strategist profesional untuk brand FOMI Indonesia.
 
-TENTANG FOMI:
-- FOMI adalah "Skincare-Infused Foaming Hand Care" (sabun cuci tangan premium berbentuk foam).
-- Tagline: "Kunci Keaslian Sentuhan"
-- 3 kandungan utama: Eco-Enzyme (antibakteri alami), Kolagen Premium (elastisitas kulit), Madu Alami (kelembapan).
-- Keunikan: Setiap boks dilengkapi stiker ekspresi bulat DIY (•‿•, ^‿^, o_o, ◕‿↼) yang bisa ditempel di botol dan diberi nama sendiri ("Adopt & Name Your FOMI").
-- Target market: Gen Z perempuan Indonesia, usia 17-28 tahun, suka hal-hal aesthetic/cute.
-- Positioning: BUKAN sabun mahal/luxury. Tapi sabun yang lucu, personal, dan bikin cuci tangan jadi ritual seru.
+{fomi_master_info}
 
 TANGGAL HARI INI: {tanggal}
 

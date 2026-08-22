@@ -293,18 +293,15 @@ def generate_full_video_brief(storytelling_videos, comments_data, trending_data)
             f"   Link: {t['url']}\n\n"
         )
 
+    try:
+        from fomi_knowledge import get_formatted_knowledge_prompt
+        fomi_master_info = get_formatted_knowledge_prompt()
+    except:
+        fomi_master_info = ""
+
     prompt = f"""Kamu adalah senior content strategist dan scriptwriter profesional untuk brand FOMI Indonesia.
 
-═══════════════════════════════════════════
-TENTANG FOMI
-═══════════════════════════════════════════
-- FOMI = "Skincare-Infused Foaming Hand Care" (sabun cuci tangan premium foam).
-- Tagline: "Kunci Keaslian Sentuhan"
-- 3 kandungan: Eco-Enzyme (antibakteri alami), Kolagen Premium, Madu Alami.
-- Keunikan: Stiker ekspresi bulat DIY (•‿•, ^‿^, o_o) di setiap boks, bisa ditempel di botol & diberi nama ("Adopt & Name Your FOMI").
-- Target: Gen Z perempuan Indonesia, 17-28 tahun, suka aesthetic/cute.
-- Positioning: Sabun lucu, personal, bikin cuci tangan jadi ritual seru.
-- Dibentuk untuk: (1) Melawan virus/bakteri dengan eco-enzyme alami, (2) Komunitas dengan game after-sales, (3) Kemasan aesthetic + stiker DIY untuk cewek & anak skena.
+{fomi_master_info}
 
 ═══════════════════════════════════════════
 KONSEP VIDEO: STORYTELLING DENGAN POLARISASI
