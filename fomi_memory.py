@@ -12,7 +12,7 @@ MEMORY_FILE = os.path.join(os.path.dirname(__file__), "memory.json")
 
 DEFAULT_MEMORY = {
     "anti_patterns": [
-        "JANGAN bahas tentang tangan keriput / penuaan secara berlebihan (target audiens adalah Gen Z 17-28 tahun).",
+        "JANGAN terlalu sering/monoton membahas masalah tangan keriput/penuaan (boleh sesekali saja sebagai rotasi variasi, tapi rotasikan seimbang dengan pilar estetik, aroma, unboxing, dan gamifikasi XFOMI).",
         "JANGAN gunakan bahasa brosur atau copywriting iklan formal.",
         "JANGAN memaksakan seluruh value FOMI masuk ke dalam satu video sekaligus (fokus 1 pesan kuat per konten).",
         "JANGAN mempromosikan fitur AR 3D Scan & 3D Open World Game sampai ada instruksi lebih lanjut."
